@@ -96,7 +96,8 @@ The AI agent can help you with:
 1. **Mathematical Calculations** - Solve math problems using the `calculate` tool
 2. **Weather Information** - Get weather data for various cities (mock implementation)
 3. **Knowledge Search** - Search through a knowledge base for information
-4. **General Conversation** - Chat about various topics
+4. **Chrome Browser History** - Read and search through your Google Chrome browsing history
+5. **General Conversation** - Chat about various topics
 
 ### Example Usage
 
@@ -113,6 +114,14 @@ curl -X POST "http://localhost:8000/api/chat" \
 curl -X POST "http://localhost:8000/api/chat" \
      -H "Content-Type: application/json" \
      -d '{"message": "Tell me about Python programming"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Show me my recent browsing history"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Find my GitHub visits"}'
 ```
 
 ## Documentation
@@ -127,3 +136,25 @@ Once the server is running, visit:
 - Port: 8000
 - Auto-reload: Enabled for development
 - AI Model: GPT-3.5-turbo
+
+## Chrome History Tool
+
+The AI agent includes a powerful Chrome history reading tool that can:
+
+- **Read Recent History**: Get your most recent browsing history
+- **Search by Keywords**: Find websites containing specific terms
+- **Search by Domain**: Find visits to specific websites
+- **Search by Topic**: Find websites related to specific topics
+
+### Important Notes:
+- **Chrome must be closed** for the tool to work properly
+- The tool creates a temporary copy of your history database to avoid conflicts
+- Your browsing history is only accessed locally - no data is sent to external services
+- The tool works on macOS, Windows, and Linux
+
+### Chrome History Examples:
+- "Show me my recent browsing history"
+- "Find websites about machine learning"
+- "What GitHub repositories have I visited?"
+- "Show me my YouTube watch history"
+- "Find my visits to stackoverflow.com"

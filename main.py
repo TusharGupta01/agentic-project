@@ -65,12 +65,14 @@ async def agent_info():
             "Mathematical calculations",
             "Weather information (mock)",
             "Knowledge search (mock)",
+            "Chrome browser history reading",
             "General conversation"
         ],
         "tools": [
             "calculate - Perform mathematical calculations",
             "get_weather - Get weather information for cities",
-            "search_knowledge - Search through knowledge base"
+            "search_knowledge - Search through knowledge base",
+            "read_chrome_history - Read and search Google Chrome browser history"
         ],
         "model": "gpt-3.5-turbo"
     }

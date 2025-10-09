@@ -4,7 +4,10 @@ This agent can perform basic reasoning and tool usage tasks.
 """
 
 import os
-from typing import Dict, Any, List, TypedDict
+import sqlite3
+import json
+from datetime import datetime
+from typing import Dict, Any, List, TypedDict, Optional
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
@@ -73,6 +76,93 @@ def search_knowledge(query: str) -> str:
     
     return f"No specific knowledge found for '{query}'. Available topics: {', '.join(knowledge.keys())}"
 
+@tool
+def read_chrome_history(query: str = "", limit: int = 10) -> str:
+    """Read and search through Google Chrome browser history."""
+    try:
+        # Common Chrome history database locations
+        chrome_paths = [
+            os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/History"),
+            os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/History"),
+            os.path.expanduser("~/.config/google-chrome/Default/History"),
+            os.path.expanduser("~/snap/chromium/common/chromium/Default/History")
+        ]
+        
+        history_db = None
+        for path in chrome_paths:
+            if os.path.exists(path):
+                history_db = path
+                break
+        
+        if not history_db:
+            return "Chrome history database not found. Please ensure Chrome is installed and has been used."
+        
+        # Connect to the Chrome history database
+        # Note: Chrome locks the database when running, so we need to copy it
+        import shutil
+        import tempfile
+        
+        temp_db = tempfile.mktemp(suffix=".db")
+        shutil.copy2(history_db, temp_db)
+        
+        conn = sqlite3.connect(temp_db)
+        cursor = conn.cursor()
+        
+        # Query the history
+        if query:
+            # Search for URLs containing the query
+            cursor.execute("""
+                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time
+                FROM urls 
+                WHERE url LIKE ? OR title LIKE ?
+                ORDER BY last_visit_time DESC 
+                LIMIT ?
+            """, (f"%{query}%", f"%{query}%", limit))
+        else:
+            # Get recent history
+            cursor.execute("""
+                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time
+                FROM urls 
+                ORDER BY last_visit_time DESC 
+                LIMIT ?
+            """, (limit,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        os.unlink(temp_db)  # Clean up temp file
+        
+        if not results:
+            return f"No history entries found for query: '{query}'"
+        
+        # Format results
+        history_entries = []
+        for url, title, visit_time in results:
+            # Truncate long URLs and titles for readability
+            display_url = url[:80] + "..." if len(url) > 80 else url
+            display_title = title[:60] + "..." if len(title) > 60 else title
+            
+            history_entries.append({
+                "title": display_title,
+                "url": display_url,
+                "visit_time": visit_time
+            })
+        
+        # Create response
+        response = f"Found {len(history_entries)} history entries"
+        if query:
+            response += f" matching '{query}'"
+        response += ":\n\n"
+        
+        for i, entry in enumerate(history_entries, 1):
+            response += f"{i}. {entry['title']}\n"
+            response += f"   URL: {entry['url']}\n"
+            response += f"   Visited: {entry['visit_time']}\n\n"
+        
+        return response
+        
+    except Exception as e:
+        return f"Error reading Chrome history: {str(e)}. Make sure Chrome is not running and try again."
+
 # Initialize the LLM
 def get_llm():
     """Initialize the language model."""
@@ -112,10 +202,13 @@ def call_agent(state: AgentState):
     1. Mathematical calculations using the calculate tool
     2. Weather information using the get_weather tool  
     3. General knowledge using the search_knowledge tool
-    4. General conversation and questions
+    4. Reading and searching Google Chrome browser history using the read_chrome_history tool
+    5. General conversation and questions
     
     Always be helpful, accurate, and friendly. If you need to use tools, do so.
     If you don't need tools, respond directly to the user.
+    
+    For Chrome history requests, you can search for specific websites, topics, or get recent browsing history.
     """)
     
     # Prepare messages
@@ -129,7 +222,7 @@ def call_agent(state: AgentState):
 def call_tools(state: AgentState):
     """Call the tools that the agent requested."""
     # Get the tools
-    tools = [calculate, get_weather, search_knowledge]
+    tools = [calculate, get_weather, search_knowledge, read_chrome_history]
     tool_node = ToolNode(tools)
     
     # Execute the tools
