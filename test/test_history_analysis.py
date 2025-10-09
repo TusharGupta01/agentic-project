@@ -6,7 +6,7 @@ Test script for the enhanced browsing history analysis capabilities.
 import os
 import sys
 sys.path.append('..')
-from agent import read_chrome_history, analyze_browsing_patterns
+from tools import read_chrome_history, analyze_browsing_patterns
 
 def test_history_analysis():
     """Test the enhanced Chrome history analysis tools."""

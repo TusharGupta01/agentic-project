@@ -7,28 +7,19 @@ This demonstrates the agent structure and tool functionality.
 import os
 import sys
 sys.path.append('..')
-from agent import get_weather, search_knowledge
+from tools import get_weather, search_knowledge
 
 def test_tools():
     """Test the individual tools without the LLM."""
     print("🧪 Testing AI Agent Tools")
     print("=" * 50)
     
-    # Test calculation tool
-    print("\n📊 Testing Calculation Tool:")
-    math_tests = [
-        "15 + 27",
-        "100 / 4",
-        "(10 + 5) * 3",
-        "2^3"  # This should fail safely
-    ]
-    
     # Test weather tool
     print("\n🌤️  Testing Weather Tool:")
     weather_tests = ["Tokyo", "New York", "London", "Unknown City"]
     
     for city in weather_tests:
-        result = get_weather(city)
+        result = get_weather.invoke({"city": city})
         print(f"  {city}: {result}")
     
     # Test knowledge search tool
@@ -36,7 +27,7 @@ def test_tools():
     knowledge_tests = ["python", "fastapi", "langgraph", "unknown topic"]
     
     for topic in knowledge_tests:
-        result = search_knowledge(topic)
+        result = search_knowledge.invoke({"query": topic})
         print(f"  {topic}: {result}")
 
 def test_agent_structure():
@@ -60,7 +51,6 @@ def test_agent_structure():
         print("✅ Agent state structure is valid")
         
         print(f"✅ Agent has {len(agent_app.nodes)} nodes")
-        print(f"✅ Agent entry point: {agent_app.entry_point}")
         
     except Exception as e:
         print(f"❌ Error testing agent structure: {e}")
@@ -80,7 +70,7 @@ def show_setup_instructions():
     print("5. Test the agent:")
     print('   curl -X POST "http://localhost:8000/api/chat" \\')
     print('        -H "Content-Type: application/json" \\')
-    print('        -d \'{"message": "What is 15 + 27?"}\'')
+    print('        -d \'{"message": "Show me my recent browsing history"}\'')
 
 if __name__ == "__main__":
     print("🤖 AI Agent Test Suite")
@@ -92,3 +82,4 @@ if __name__ == "__main__":
     
     print("\n✅ All tests completed!")
     print("\nThe AI agent is ready to use once you add your OpenAI API key.")
+    print("The agent now specializes in browsing history analysis.")
