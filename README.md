@@ -1,12 +1,14 @@
-# Basic FastAPI Project
+# AI Agent FastAPI Project
 
-A simple FastAPI application with basic endpoints and automatic documentation.
+A FastAPI application with an AI agent powered by LangGraph, featuring automatic documentation and intelligent conversation capabilities.
 
 ## Features
 
 - FastAPI web framework
+- AI Agent powered by LangGraph and OpenAI
 - Automatic API documentation (Swagger UI)
-- Basic endpoints for testing
+- Intelligent conversation capabilities
+- Tool usage (calculations, weather, knowledge search)
 - Health check endpoint
 - Hot reload for development
 
@@ -61,12 +63,57 @@ Run `make help` to see all available commands:
 - `make health` - Check if server is running
 - `make info` - Show server information
 
+## Environment Setup
+
+Before running the application, you need to set up your OpenAI API key:
+
+1. Copy the example environment file:
+```bash
+cp env.example .env
+```
+
+2. Edit `.env` and add your OpenAI API key:
+```
+OPENAI_API_KEY=your_actual_api_key_here
+```
+
 ## API Endpoints
 
+### Basic Endpoints
 - `GET /` - Welcome message
 - `GET /health` - Health check
 - `GET /api/hello/{name}` - Personalized greeting
 - `POST /api/echo` - Echo received data
+
+### AI Agent Endpoints
+- `POST /api/chat` - Chat with the AI agent
+- `GET /api/agent/info` - Get agent capabilities and information
+
+## AI Agent Capabilities
+
+The AI agent can help you with:
+
+1. **Mathematical Calculations** - Solve math problems using the `calculate` tool
+2. **Weather Information** - Get weather data for various cities (mock implementation)
+3. **Knowledge Search** - Search through a knowledge base for information
+4. **General Conversation** - Chat about various topics
+
+### Example Usage
+
+```bash
+# Test the agent with curl
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "What is 15 + 27?"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "What is the weather in Tokyo?"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Tell me about Python programming"}'
+```
 
 ## Documentation
 
@@ -79,3 +126,4 @@ Once the server is running, visit:
 - Host: 0.0.0.0 (accessible from any IP)
 - Port: 8000
 - Auto-reload: Enabled for development
+- AI Model: GPT-3.5-turbo
