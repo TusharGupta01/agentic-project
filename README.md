@@ -138,7 +138,8 @@ Once the server is running, visit:
 - Host: 0.0.0.0 (accessible from any IP)
 - Port: 8000
 - Auto-reload: Enabled for development
-- AI Model: GPT-3.5-turbo
+- AI Model: GPT-3.5-turbo-1106 (cheapest available)
+- Cost: $0.001/1K input tokens, $0.002/1K output tokens
 
 ## Browsing History Analysis Features
 
@@ -172,3 +173,31 @@ The AI agent specializes in comprehensive browsing history analysis:
 - Your browsing history is only accessed locally - no data is sent to external services
 - The tool works on macOS, Windows, and Linux
 - All analysis happens on your local machine for privacy
+
+## Cost Optimization
+
+The agent is configured to use the **cheapest available OpenAI model** to minimize costs:
+
+### **Current Configuration:**
+- **Model**: GPT-3.5-turbo-1106
+- **Cost**: $0.001/1K input tokens, $0.002/1K output tokens
+- **Max Tokens**: 1000 (limits response length to control costs)
+- **Temperature**: 0.3 (focused responses)
+
+### **Cost Examples:**
+- **Simple query** (1000 input, 500 output): ~$0.002
+- **Complex analysis** (2000 input, 1000 output): ~$0.004
+- **Heavy usage** (5000 input, 2000 output): ~$0.009
+
+### **Cost Savings:**
+- **92% cheaper** than GPT-4 Turbo
+- **33% cheaper** than standard GPT-3.5-turbo
+- **Perfect for browsing history analysis** tasks
+
+### **Model Options:**
+The system supports multiple model tiers:
+- **Cheapest**: GPT-3.5-turbo-1106 (current)
+- **Balanced**: GPT-3.5-turbo
+- **Premium**: GPT-4-turbo-preview
+
+Check `/api/model/info` endpoint for detailed cost information.

@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from agent import run_agent
+from agent.model_config import ModelConfig, estimate_cost
 
 # Create FastAPI instance
 app = FastAPI(
@@ -83,7 +84,20 @@ async def agent_info():
             "domains - Analyze top domains by visit count",
             "search - Search for specific terms in history"
         ],
-        "model": "gpt-3.5-turbo"
+        "model": "gpt-3.5-turbo-1106 (cheapest)",
+        "current_model_tier": "cheapest"
+    }
+
+@app.get("/api/model/info")
+async def model_info():
+    """Get information about available models and current configuration."""
+    return {
+        "current_model": ModelConfig.get_model_info("cheapest"),
+        "available_models": ModelConfig.list_models(),
+        "cost_estimation": {
+            "example_1000_input_500_output": estimate_cost(1000, 500, "cheapest"),
+            "example_2000_input_1000_output": estimate_cost(2000, 1000, "cheapest")
+        }
     }
 
 if __name__ == "__main__":

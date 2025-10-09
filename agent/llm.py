@@ -2,18 +2,10 @@
 Language model configuration and initialization.
 """
 
-import os
-from langchain_openai import ChatOpenAI
+from .model_config import get_llm as get_configured_llm
 
 
 def get_llm():
-    """Initialize the language model."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
-    
-    return ChatOpenAI(
-        model="gpt-3.5-turbo",
-        temperature=0.7,
-        api_key=api_key
-    )
+    """Initialize the language model with the cheapest available option."""
+    # Use the cheapest model by default
+    return get_configured_llm("cheapest")
