@@ -60,19 +60,28 @@ async def chat_with_agent(request: ChatRequest):
 async def agent_info():
     """Get information about the AI agent capabilities."""
     return {
-        "agent_name": "LangGraph AI Agent",
+        "agent_name": "Browsing History Analysis Agent",
+        "description": "Specialized AI agent for analyzing and understanding your browsing history",
         "capabilities": [
-            "Mathematical calculations",
+            "Chrome browser history analysis",
+            "Browsing pattern insights",
+            "Domain visit statistics",
+            "Search through browsing history",
             "Weather information (mock)",
             "Knowledge search (mock)",
-            "Chrome browser history reading",
             "General conversation"
         ],
         "tools": [
-            "calculate - Perform mathematical calculations",
+            "read_chrome_history - Read and analyze Google Chrome browser history with multiple analysis types",
+            "analyze_browsing_patterns - Analyze browsing patterns and provide insights about web usage",
             "get_weather - Get weather information for cities",
-            "search_knowledge - Search through knowledge base",
-            "read_chrome_history - Read and search Google Chrome browser history"
+            "search_knowledge - Search through knowledge base"
+        ],
+        "history_analysis_types": [
+            "recent - Get recent browsing history",
+            "frequent - Find most frequently visited sites", 
+            "domains - Analyze top domains by visit count",
+            "search - Search for specific terms in history"
         ],
         "model": "gpt-3.5-turbo"
     }

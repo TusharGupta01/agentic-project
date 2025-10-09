@@ -5,7 +5,9 @@ This demonstrates the agent structure and tool functionality.
 """
 
 import os
-from agent import calculate, get_weather, search_knowledge
+import sys
+sys.path.append('..')
+from agent import get_weather, search_knowledge
 
 def test_tools():
     """Test the individual tools without the LLM."""
@@ -20,10 +22,6 @@ def test_tools():
         "(10 + 5) * 3",
         "2^3"  # This should fail safely
     ]
-    
-    for expr in math_tests:
-        result = calculate(expr)
-        print(f"  {expr} = {result}")
     
     # Test weather tool
     print("\n🌤️  Testing Weather Tool:")

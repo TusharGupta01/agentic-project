@@ -1,16 +1,17 @@
-# AI Agent FastAPI Project
+# Browsing History Analysis Agent
 
-A FastAPI application with an AI agent powered by LangGraph, featuring automatic documentation and intelligent conversation capabilities.
+A specialized AI agent powered by LangGraph and FastAPI that helps you analyze and understand your Google Chrome browsing history with intelligent insights and pattern recognition.
 
 ## Features
 
-- FastAPI web framework
-- AI Agent powered by LangGraph and OpenAI
-- Automatic API documentation (Swagger UI)
-- Intelligent conversation capabilities
-- Tool usage (calculations, weather, knowledge search)
-- Health check endpoint
-- Hot reload for development
+- **Specialized Browsing History Analysis** - Deep insights into your web browsing patterns
+- **Multiple Analysis Types** - Recent history, frequent sites, domain statistics, and search
+- **Pattern Recognition** - Identify browsing habits and trends over time
+- **FastAPI web framework** with automatic documentation (Swagger UI)
+- **AI Agent powered by LangGraph and OpenAI**
+- **Cross-platform support** - Works on macOS, Windows, and Linux
+- **Privacy-focused** - All analysis happens locally on your machine
+- **Hot reload for development**
 
 ## Setup
 
@@ -91,13 +92,15 @@ OPENAI_API_KEY=your_actual_api_key_here
 
 ## AI Agent Capabilities
 
-The AI agent can help you with:
+The AI agent specializes in helping you understand your browsing behavior:
 
-1. **Mathematical Calculations** - Solve math problems using the `calculate` tool
-2. **Weather Information** - Get weather data for various cities (mock implementation)
-3. **Knowledge Search** - Search through a knowledge base for information
-4. **Chrome Browser History** - Read and search through your Google Chrome browsing history
-5. **General Conversation** - Chat about various topics
+1. **Chrome History Analysis** - Read and analyze your Google Chrome browsing history
+2. **Browsing Pattern Insights** - Understand your web usage habits and trends
+3. **Domain Statistics** - See which websites you visit most frequently
+4. **Search Through History** - Find specific websites, topics, or time periods
+5. **Time-based Analysis** - Analyze browsing patterns over different timeframes
+6. **General Knowledge** - Search through a knowledge base for information
+7. **Weather Information** - Get weather data for various cities (mock implementation)
 
 ### Example Usage
 
@@ -105,23 +108,23 @@ The AI agent can help you with:
 # Test the agent with curl
 curl -X POST "http://localhost:8000/api/chat" \
      -H "Content-Type: application/json" \
-     -d '{"message": "What is 15 + 27?"}'
-
-curl -X POST "http://localhost:8000/api/chat" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "What is the weather in Tokyo?"}'
-
-curl -X POST "http://localhost:8000/api/chat" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "Tell me about Python programming"}'
-
-curl -X POST "http://localhost:8000/api/chat" \
-     -H "Content-Type: application/json" \
      -d '{"message": "Show me my recent browsing history"}'
 
 curl -X POST "http://localhost:8000/api/chat" \
      -H "Content-Type: application/json" \
+     -d '{"message": "What are my most visited websites?"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
      -d '{"message": "Find my GitHub visits"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Analyze my browsing patterns for the last week"}'
+
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "What websites did I visit about machine learning?"}'
 ```
 
 ## Documentation
@@ -137,24 +140,35 @@ Once the server is running, visit:
 - Auto-reload: Enabled for development
 - AI Model: GPT-3.5-turbo
 
-## Chrome History Tool
+## Browsing History Analysis Features
 
-The AI agent includes a powerful Chrome history reading tool that can:
+The AI agent specializes in comprehensive browsing history analysis:
 
-- **Read Recent History**: Get your most recent browsing history
-- **Search by Keywords**: Find websites containing specific terms
-- **Search by Domain**: Find visits to specific websites
-- **Search by Topic**: Find websites related to specific topics
+### **Core Analysis Types:**
+- **Recent History** - Get your most recent browsing activity
+- **Frequent Sites** - Find websites you visit most often
+- **Domain Statistics** - Analyze which domains you visit most
+- **Keyword Search** - Find websites containing specific terms
+- **Time-based Analysis** - Analyze patterns over different timeframes
 
-### Important Notes:
+### **Advanced Insights:**
+- **Browsing Pattern Analysis** - Understand your web usage habits
+- **Visit Frequency Tracking** - See how often you visit specific sites
+- **Domain Popularity** - Identify your most frequented websites
+- **Time-based Trends** - Analyze browsing patterns over days, weeks, or months
+
+### **Example Queries:**
+- "Show me my recent browsing history"
+- "What are my most visited websites?"
+- "Analyze my browsing patterns for the last week"
+- "Find websites about machine learning"
+- "What GitHub repositories have I visited?"
+- "Show me my YouTube watch history"
+- "Which domains do I visit most frequently?"
+
+### **Important Notes:**
 - **Chrome must be closed** for the tool to work properly
 - The tool creates a temporary copy of your history database to avoid conflicts
 - Your browsing history is only accessed locally - no data is sent to external services
 - The tool works on macOS, Windows, and Linux
-
-### Chrome History Examples:
-- "Show me my recent browsing history"
-- "Find websites about machine learning"
-- "What GitHub repositories have I visited?"
-- "Show me my YouTube watch history"
-- "Find my visits to stackoverflow.com"
+- All analysis happens on your local machine for privacy

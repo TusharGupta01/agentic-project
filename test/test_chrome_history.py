@@ -6,6 +6,7 @@ This tests the Chrome history reading functionality.
 
 import os
 import sys
+sys.path.append('..')
 from agent import read_chrome_history
 
 def test_chrome_history():

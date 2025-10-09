@@ -27,19 +27,6 @@ class AgentState(TypedDict):
     final_response: str
 
 # Define tools for the agent
-@tool
-def calculate(expression: str) -> str:
-    """Calculate a mathematical expression safely."""
-    try:
-        # Simple safe evaluation for basic math
-        allowed_chars = set('0123456789+-*/.() ')
-        if not all(c in allowed_chars for c in expression):
-            return "Error: Only basic mathematical operations are allowed"
-        
-        result = eval(expression)
-        return f"The result of {expression} is {result}"
-    except Exception as e:
-        return f"Error calculating {expression}: {str(e)}"
 
 @tool
 def get_weather(city: str) -> str:
@@ -77,8 +64,8 @@ def search_knowledge(query: str) -> str:
     return f"No specific knowledge found for '{query}'. Available topics: {', '.join(knowledge.keys())}"
 
 @tool
-def read_chrome_history(query: str = "", limit: int = 10) -> str:
-    """Read and search through Google Chrome browser history."""
+def read_chrome_history(query: str = "", limit: int = 10, analysis_type: str = "search") -> str:
+    """Read and analyze Google Chrome browser history with intelligent insights."""
     try:
         # Common Chrome history database locations
         chrome_paths = [
@@ -98,7 +85,6 @@ def read_chrome_history(query: str = "", limit: int = 10) -> str:
             return "Chrome history database not found. Please ensure Chrome is installed and has been used."
         
         # Connect to the Chrome history database
-        # Note: Chrome locks the database when running, so we need to copy it
         import shutil
         import tempfile
         
@@ -108,24 +94,57 @@ def read_chrome_history(query: str = "", limit: int = 10) -> str:
         conn = sqlite3.connect(temp_db)
         cursor = conn.cursor()
         
-        # Query the history
-        if query:
-            # Search for URLs containing the query
+        # Query the history based on analysis type
+        if analysis_type == "recent":
             cursor.execute("""
-                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time
-                FROM urls 
-                WHERE url LIKE ? OR title LIKE ?
-                ORDER BY last_visit_time DESC 
-                LIMIT ?
-            """, (f"%{query}%", f"%{query}%", limit))
-        else:
-            # Get recent history
-            cursor.execute("""
-                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time
+                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time,
+                       visit_count
                 FROM urls 
                 ORDER BY last_visit_time DESC 
                 LIMIT ?
             """, (limit,))
+        elif analysis_type == "frequent":
+            cursor.execute("""
+                SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time,
+                       visit_count
+                FROM urls 
+                WHERE visit_count > 1
+                ORDER BY visit_count DESC 
+                LIMIT ?
+            """, (limit,))
+        elif analysis_type == "domains":
+            cursor.execute("""
+                SELECT 
+                    CASE 
+                        WHEN url LIKE 'https://%' THEN substr(url, 9, instr(substr(url, 9), '/') - 1)
+                        WHEN url LIKE 'http://%' THEN substr(url, 8, instr(substr(url, 8), '/') - 1)
+                        ELSE 'unknown'
+                    END as domain,
+                    COUNT(*) as visit_count,
+                    MAX(datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch')) as last_visit
+                FROM urls 
+                GROUP BY domain
+                ORDER BY visit_count DESC 
+                LIMIT ?
+            """, (limit,))
+        else:  # search
+            if query:
+                cursor.execute("""
+                    SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time,
+                           visit_count
+                    FROM urls 
+                    WHERE url LIKE ? OR title LIKE ?
+                    ORDER BY last_visit_time DESC 
+                    LIMIT ?
+                """, (f"%{query}%", f"%{query}%", limit))
+            else:
+                cursor.execute("""
+                    SELECT url, title, datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') as visit_time,
+                           visit_count
+                    FROM urls 
+                    ORDER BY last_visit_time DESC 
+                    LIMIT ?
+                """, (limit,))
         
         results = cursor.fetchall()
         conn.close()
@@ -134,34 +153,127 @@ def read_chrome_history(query: str = "", limit: int = 10) -> str:
         if not results:
             return f"No history entries found for query: '{query}'"
         
-        # Format results
-        history_entries = []
-        for url, title, visit_time in results:
-            # Truncate long URLs and titles for readability
-            display_url = url[:80] + "..." if len(url) > 80 else url
-            display_title = title[:60] + "..." if len(title) > 60 else title
+        # Format results based on analysis type
+        if analysis_type == "domains":
+            response = f"Top {len(results)} most visited domains:\n\n"
+            for i, (domain, visit_count, last_visit) in enumerate(results, 1):
+                response += f"{i}. {domain}\n"
+                response += f"   Visits: {visit_count}\n"
+                response += f"   Last visit: {last_visit}\n\n"
+        else:
+            response = f"Found {len(results)} history entries"
+            if query:
+                response += f" matching '{query}'"
+            response += ":\n\n"
             
-            history_entries.append({
-                "title": display_title,
-                "url": display_url,
-                "visit_time": visit_time
-            })
-        
-        # Create response
-        response = f"Found {len(history_entries)} history entries"
-        if query:
-            response += f" matching '{query}'"
-        response += ":\n\n"
-        
-        for i, entry in enumerate(history_entries, 1):
-            response += f"{i}. {entry['title']}\n"
-            response += f"   URL: {entry['url']}\n"
-            response += f"   Visited: {entry['visit_time']}\n\n"
+            for i, result in enumerate(results, 1):
+                if len(result) == 4:  # url, title, visit_time, visit_count
+                    url, title, visit_time, visit_count = result
+                else:  # domains query
+                    continue
+                
+                # Truncate long URLs and titles for readability
+                display_url = url[:80] + "..." if len(url) > 80 else url
+                display_title = title[:60] + "..." if len(title) > 60 else title
+                
+                response += f"{i}. {display_title}\n"
+                response += f"   URL: {display_url}\n"
+                response += f"   Visited: {visit_time}\n"
+                if visit_count > 1:
+                    response += f"   Visit count: {visit_count}\n"
+                response += "\n"
         
         return response
         
     except Exception as e:
         return f"Error reading Chrome history: {str(e)}. Make sure Chrome is not running and try again."
+
+@tool
+def analyze_browsing_patterns(timeframe: str = "week") -> str:
+    """Analyze browsing patterns and provide insights about web usage."""
+    try:
+        # Common Chrome history database locations
+        chrome_paths = [
+            os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/History"),
+            os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/History"),
+            os.path.expanduser("~/.config/google-chrome/Default/History"),
+            os.path.expanduser("~/snap/chromium/common/chromium/Default/History")
+        ]
+        
+        history_db = None
+        for path in chrome_paths:
+            if os.path.exists(path):
+                history_db = path
+                break
+        
+        if not history_db:
+            return "Chrome history database not found. Please ensure Chrome is installed and has been used."
+        
+        import shutil
+        import tempfile
+        
+        temp_db = tempfile.mktemp(suffix=".db")
+        shutil.copy2(history_db, temp_db)
+        
+        conn = sqlite3.connect(temp_db)
+        cursor = conn.cursor()
+        
+        # Calculate time filter based on timeframe
+        if timeframe == "day":
+            time_filter = "datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') >= datetime('now', '-1 day')"
+        elif timeframe == "week":
+            time_filter = "datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') >= datetime('now', '-7 days')"
+        elif timeframe == "month":
+            time_filter = "datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch') >= datetime('now', '-30 days')"
+        else:
+            time_filter = "1=1"  # All time
+        
+        # Get domain statistics
+        cursor.execute(f"""
+            SELECT 
+                CASE 
+                    WHEN url LIKE 'https://%' THEN substr(url, 9, instr(substr(url, 9), '/') - 1)
+                    WHEN url LIKE 'http://%' THEN substr(url, 8, instr(substr(url, 8), '/') - 1)
+                    ELSE 'unknown'
+                END as domain,
+                COUNT(*) as visit_count,
+                MAX(datetime(last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch')) as last_visit
+            FROM urls 
+            WHERE {time_filter}
+            GROUP BY domain
+            ORDER BY visit_count DESC 
+            LIMIT 10
+        """)
+        
+        domain_results = cursor.fetchall()
+        
+        # Get total visits
+        cursor.execute(f"""
+            SELECT COUNT(*) as total_visits
+            FROM urls 
+            WHERE {time_filter}
+        """)
+        
+        total_visits = cursor.fetchone()[0]
+        
+        conn.close()
+        os.unlink(temp_db)
+        
+        # Format analysis
+        response = f"📊 Browsing Analysis for the last {timeframe}:\n\n"
+        response += f"Total visits: {total_visits}\n\n"
+        response += "Top 10 most visited domains:\n\n"
+        
+        for i, (domain, visit_count, last_visit) in enumerate(domain_results, 1):
+            percentage = (visit_count / total_visits * 100) if total_visits > 0 else 0
+            response += f"{i}. {domain}\n"
+            response += f"   Visits: {visit_count} ({percentage:.1f}%)\n"
+            response += f"   Last visit: {last_visit}\n\n"
+        
+        return response
+        
+    except Exception as e:
+        return f"Error analyzing browsing patterns: {str(e)}. Make sure Chrome is not running and try again."
 
 # Initialize the LLM
 def get_llm():
@@ -198,17 +310,30 @@ def call_agent(state: AgentState):
     
     # Create system message
     system_message = SystemMessage(content="""
-    You are a helpful AI assistant. You can help users with:
-    1. Mathematical calculations using the calculate tool
-    2. Weather information using the get_weather tool  
-    3. General knowledge using the search_knowledge tool
-    4. Reading and searching Google Chrome browser history using the read_chrome_history tool
-    5. General conversation and questions
+    You are a specialized AI assistant focused on helping users analyze and understand their browsing history. 
+    Your primary capabilities include:
     
-    Always be helpful, accurate, and friendly. If you need to use tools, do so.
-    If you don't need tools, respond directly to the user.
+    1. **Chrome History Analysis** - Read and search through Google Chrome browser history
+    2. **Browsing Pattern Analysis** - Analyze browsing patterns and provide insights
+    3. **Weather Information** - Get weather data for various cities (mock implementation)
+    4. **General Knowledge** - Search through a knowledge base for information
+    5. **General Conversation** - Chat about various topics
     
-    For Chrome history requests, you can search for specific websites, topics, or get recent browsing history.
+    **Primary Focus: Browsing History Analysis**
+    You excel at helping users understand their web browsing behavior by:
+    - Finding specific websites they've visited
+    - Analyzing their most frequented domains
+    - Identifying browsing patterns over time
+    - Providing insights about their web usage habits
+    - Answering questions about their browsing history
+    
+    **Available History Analysis Types:**
+    - "recent" - Get recent browsing history
+    - "frequent" - Find most frequently visited sites
+    - "domains" - Analyze top domains by visit count
+    - "search" - Search for specific terms in history
+    
+    Always be helpful, accurate, and friendly. Focus on providing meaningful insights about the user's browsing behavior.
     """)
     
     # Prepare messages
@@ -222,7 +347,7 @@ def call_agent(state: AgentState):
 def call_tools(state: AgentState):
     """Call the tools that the agent requested."""
     # Get the tools
-    tools = [calculate, get_weather, search_knowledge, read_chrome_history]
+    tools = [get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns]
     tool_node = ToolNode(tools)
     
     # Execute the tools
