@@ -4,6 +4,8 @@ Test script for model configuration and cost estimation.
 """
 
 from agent.model_config import ModelConfig, estimate_cost
+import sys
+sys.path.append('..')
 
 def test_model_config():
     """Test the model configuration system."""
