@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode
 
 from .state import AgentState
 from .llm import get_llm
+from .prompts import get_browsing_history_prompt, get_response_synthesis_prompt
 from tools import get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns
 
 
@@ -29,42 +30,20 @@ def should_continue(state: AgentState) -> str:
 
 
 def call_agent(state: AgentState):
-    """Call the language model agent."""
+    """Call the language model agent using structured prompt templates."""
     llm = get_llm()
     
-    # Create system message
-    system_message = SystemMessage(content="""
-    You are a specialized AI assistant focused on helping users analyze and understand their browsing history. 
-    Your primary capabilities include:
+    # Get the user input from the last message
+    user_input = state["user_input"]
     
-    1. **Chrome History Analysis** - Read and search through Google Chrome browser history
-    2. **Browsing Pattern Analysis** - Analyze browsing patterns and provide insights
-    3. **Weather Information** - Get weather data for various cities (mock implementation)
-    4. **General Knowledge** - Search through a knowledge base for information
-    5. **General Conversation** - Chat about various topics
+    # Create prompt template
+    prompt_template = get_browsing_history_prompt()
     
-    **Primary Focus: Browsing History Analysis**
-    You excel at helping users understand their web browsing behavior by:
-    - Finding specific websites they've visited
-    - Analyzing their most frequented domains
-    - Identifying browsing patterns over time
-    - Providing insights about their web usage habits
-    - Answering questions about their browsing history
-    
-    **Available History Analysis Types:**
-    - "recent" - Get recent browsing history
-    - "frequent" - Find most frequently visited sites
-    - "domains" - Analyze top domains by visit count
-    - "search" - Search for specific terms in history
-    
-    Always be helpful, accurate, and friendly. Focus on providing meaningful insights about the user's browsing behavior.
-    """)
-    
-    # Prepare messages
-    messages = [system_message] + state["messages"]
+    # Format the prompt with user input
+    formatted_prompt = prompt_template.format_messages(user_input=user_input)
     
     # Get response from LLM
-    response = llm.invoke(messages)
+    response = llm.invoke(formatted_prompt)
     
     return {"messages": [response]}
 
@@ -82,17 +61,36 @@ def call_tools(state: AgentState):
 
 
 def finalize_response(state: AgentState):
-    """Finalize the response for the user."""
+    """Finalize the response for the user using prompt templates."""
     messages = state["messages"]
+    user_input = state["user_input"]
     
     # Get the final AI response
     final_message = None
-    for message in reversed(messages):
-        if isinstance(message, AIMessage) and not message.tool_calls:
-            final_message = message
-            break
+    tool_results = []
     
-    if final_message:
+    for message in messages:
+        if isinstance(message, AIMessage):
+            if message.tool_calls:
+                # Collect tool call information
+                for tool_call in message.tool_calls:
+                    tool_results.append(f"Tool: {tool_call['name']} - {tool_call.get('args', {})}")
+            else:
+                final_message = message
+    
+    if final_message and tool_results:
+        # Use synthesis prompt to create a better response
+        llm = get_llm()
+        synthesis_prompt = get_response_synthesis_prompt()
+        
+        formatted_prompt = synthesis_prompt.format_messages(
+            user_input=user_input,
+            tool_results="\n".join(tool_results)
+        )
+        
+        synthesis_response = llm.invoke(formatted_prompt)
+        return {"final_response": synthesis_response.content}
+    elif final_message:
         return {"final_response": final_message.content}
     else:
         return {"final_response": "I apologize, but I couldn't generate a proper response."}
