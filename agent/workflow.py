@@ -2,14 +2,16 @@
 LangGraph workflow for the browsing history analysis agent.
 """
 
-from typing import Dict, Any
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from typing import Dict, Any, Optional
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 from .state import AgentState
 from .llm import get_llm
 from .prompts import get_browsing_history_prompt, get_response_synthesis_prompt
+from .memory import conversation_memory
 from tools import get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns
 
 
@@ -33,17 +35,65 @@ def call_agent(state: AgentState):
     """Call the language model agent using structured prompt templates."""
     llm = get_llm()
     
+    # Get the tools and bind them to the LLM
+    tools = [get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns]
+    llm_with_tools = llm.bind_tools(tools)
+    
     # Get the user input from the last message
     user_input = state["user_input"]
+    session_id = state.get("session_id")
     
-    # Create prompt template
-    prompt_template = get_browsing_history_prompt()
+    # Get conversation history if session exists
+    conversation_history = []
+    if session_id:
+        conversation_history = conversation_memory.get_conversation_context(session_id, max_messages=10)
     
-    # Format the prompt with user input
-    formatted_prompt = prompt_template.format_messages(user_input=user_input)
+    # Check if we have tool results in the current state
+    has_tool_results = any(isinstance(msg, ToolMessage) for msg in state["messages"])
     
-    # Get response from LLM
-    response = llm.invoke(formatted_prompt)
+    if has_tool_results:
+        # Extract tool results from the messages
+        tool_results = []
+        for msg in state["messages"]:
+            if isinstance(msg, ToolMessage):
+                tool_results.append(f"Tool: {msg.name} - Result: {msg.content}")
+        
+        # If we have tool results, use a synthesis prompt
+        synthesis_prompt = ChatPromptTemplate.from_template("""
+        Based on the user's query, conversation history, and the tool results, provide a helpful and conversational response.
+
+        Previous conversation:
+        {conversation_history}
+
+        User Query: {user_input}
+
+        Tool Results:
+        {tool_results}
+
+        Create a natural, helpful response that addresses the user's question using the tool results and conversation context.
+        Do NOT call any more tools - provide a final response based on the information you have.
+        """)
+        
+        formatted_prompt = synthesis_prompt.format_messages(
+            user_input=user_input,
+            conversation_history=conversation_history,
+            tool_results="\n".join(tool_results)
+        )
+        
+        # Use regular LLM (not with tools) for synthesis
+        response = llm.invoke(formatted_prompt)
+    else:
+        # Create prompt template for initial response
+        prompt_template = get_browsing_history_prompt()
+        
+        # Format the prompt with user input and conversation history
+        formatted_prompt = prompt_template.format_messages(
+            user_input=user_input,
+            conversation_history=conversation_history
+        )
+        
+        # Get response from LLM with tools
+        response = llm_with_tools.invoke(formatted_prompt)
     
     return {"messages": [response]}
 
@@ -116,7 +166,6 @@ def create_agent_graph():
         "agent",
         should_continue,
         {
-            "agent": "agent",
             "tools": "tools", 
             "end": "finalize"
         }
@@ -131,20 +180,34 @@ def create_agent_graph():
     return app
 
 
-def run_agent(user_input: str) -> str:
+def run_agent(user_input: str, session_id: Optional[str] = None) -> str:
     """Run the agent with user input and return the response."""
     try:
+        # Create or get session
+        if not session_id:
+            session_id = conversation_memory.create_session()
+        
+        # Add user message to conversation history
+        user_message = HumanMessage(content=user_input)
+        conversation_memory.add_message(session_id, user_message)
+        
         # Create initial state
         initial_state = {
-            "messages": [HumanMessage(content=user_input)],
+            "messages": [user_message],
             "user_input": user_input,
-            "final_response": ""
+            "final_response": "",
+            "session_id": session_id
         }
         
         # Run the agent
         result = create_agent_graph().invoke(initial_state)
         
-        return result.get("final_response", "No response generated")
+        # Add AI response to conversation history
+        final_response = result.get("final_response", "No response generated")
+        ai_message = AIMessage(content=final_response)
+        conversation_memory.add_message(session_id, ai_message)
+        
+        return final_response
         
     except Exception as e:
         return f"Error running agent: {str(e)}"

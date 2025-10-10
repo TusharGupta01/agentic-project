@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional
 import uvicorn
 from agent import run_agent
 from agent.model_config import ModelConfig, estimate_cost
+from agent.memory import conversation_memory
 
 # Create FastAPI instance
 app = FastAPI(
@@ -15,10 +17,18 @@ app = FastAPI(
 # Pydantic models for request/response
 class ChatRequest(BaseModel):
     message: str
+    session_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
     status: str
+    session_id: str
+
+class SessionInfo(BaseModel):
+    session_id: str
+    message_count: int
+    created_at: str
+    last_accessed: str
 
 # Root endpoint
 @app.get("/")
@@ -43,16 +53,25 @@ async def echo_data(data: dict):
 # AI Agent endpoints
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_with_agent(request: ChatRequest):
-    """Chat with the AI agent powered by LangGraph."""
+    """Chat with the AI agent powered by LangGraph with conversation memory."""
     try:
         if not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        response = run_agent(request.message)
+        response = run_agent(request.message, request.session_id)
+        
+        # Get the session ID that was used (either provided or newly created)
+        if request.session_id:
+            session_id = request.session_id
+        else:
+            # Get the most recently created session
+            session_ids = list(conversation_memory.sessions.keys())
+            session_id = session_ids[-1] if session_ids else None
         
         return ChatResponse(
             response=response,
-            status="success"
+            status="success",
+            session_id=session_id
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
@@ -99,6 +118,44 @@ async def model_info():
             "example_2000_input_1000_output": estimate_cost(2000, 1000, "cheapest")
         }
     }
+
+# Session management endpoints
+@app.post("/api/sessions/new")
+async def create_new_session():
+    """Create a new conversation session."""
+    session_id = conversation_memory.create_session()
+    return {"session_id": session_id, "status": "created"}
+
+@app.get("/api/sessions/{session_id}", response_model=SessionInfo)
+async def get_session_info(session_id: str):
+    """Get information about a specific session."""
+    session_info = conversation_memory.get_session_info(session_id)
+    if not session_info:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return SessionInfo(**session_info)
+
+@app.get("/api/sessions")
+async def list_sessions():
+    """List all active conversation sessions."""
+    return {"sessions": conversation_memory.get_all_sessions()}
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a conversation session."""
+    if session_id not in conversation_memory.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    conversation_memory.delete_session(session_id)
+    return {"status": "deleted", "session_id": session_id}
+
+@app.post("/api/sessions/{session_id}/clear")
+async def clear_session(session_id: str):
+    """Clear all messages from a session."""
+    if session_id not in conversation_memory.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    conversation_memory.clear_session(session_id)
+    return {"status": "cleared", "session_id": session_id}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

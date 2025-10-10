@@ -32,6 +32,42 @@ def _create_temp_db_copy(history_db_path):
     return temp_db
 
 
+def _get_mock_history_data(query: str, limit: int, analysis_type: str) -> str:
+    """Return mock history data for development/testing to avoid security alerts."""
+    mock_data = {
+        "recent": [
+            "1. GitHub - https://github.com",
+            "2. Stack Overflow - https://stackoverflow.com", 
+            "3. Python Documentation - https://docs.python.org",
+            "4. OpenAI API - https://platform.openai.com",
+            "5. FastAPI Documentation - https://fastapi.tiangolo.com"
+        ],
+        "frequent": [
+            "1. GitHub (15 visits)",
+            "2. Stack Overflow (12 visits)",
+            "3. Python Documentation (8 visits)", 
+            "4. OpenAI API (6 visits)",
+            "5. FastAPI Documentation (4 visits)"
+        ],
+        "domains": [
+            "1. github.com (15 visits)",
+            "2. stackoverflow.com (12 visits)",
+            "3. docs.python.org (8 visits)",
+            "4. platform.openai.com (6 visits)",
+            "5. fastapi.tiangolo.com (4 visits)"
+        ],
+        "search": [
+            f"Found {limit} results for '{query}':",
+            "1. Python Programming Tutorial - https://python.org/tutorial",
+            "2. Python Best Practices - https://docs.python.org/3/tutorial",
+            "3. Python Libraries - https://pypi.org"
+        ]
+    }
+    
+    data = mock_data.get(analysis_type, mock_data["search"])
+    return f"Found {len(data)} history entries:\n\n" + "\n".join(data[:limit])
+
+
 def _format_history_results(results, analysis_type, query=""):
     """Format history query results for display."""
     if not results:
@@ -71,7 +107,17 @@ def _format_history_results(results, analysis_type, query=""):
 def read_chrome_history(query: str = "", limit: int = 10, analysis_type: str = "search") -> str:
     """Read and analyze Google Chrome browser history with intelligent insights."""
     try:
+        # Check if we should use mock data (to avoid security alerts)
+        use_mock = os.getenv("USE_MOCK_CHROME_DATA", "false").lower() == "true"
+        
+        if use_mock:
+            return _get_mock_history_data(query, limit, analysis_type)
+        
         history_db = _get_chrome_history_path()
+        print(f"History DB: {history_db}")
+        print(f"Query: {query}")
+        print(f"Limit: {limit}")
+        print(f"Analysis type: {analysis_type}")
         if not history_db:
             return "Chrome history database not found. Please ensure Chrome is installed and has been used."
         
