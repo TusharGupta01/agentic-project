@@ -12,6 +12,12 @@ from .file_analysis_tool import (
     search_files_in_folder,
     get_file_summary
 )
+from .email_writing_tool import (
+    write_email,
+    write_text_message,
+    suggest_email_improvements,
+    get_communication_templates
+)
 
 __all__ = [
     "get_weather",
@@ -22,5 +28,9 @@ __all__ = [
     "read_file_content",
     "analyze_folder_structure",
     "search_files_in_folder",
-    "get_file_summary"
+    "get_file_summary",
+    "write_email",
+    "write_text_message",
+    "suggest_email_improvements",
+    "get_communication_templates"
 ]

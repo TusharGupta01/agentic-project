@@ -15,7 +15,8 @@ from .memory import conversation_memory
 from tools import (
     get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
     list_folder_contents, read_file_content, analyze_folder_structure, 
-    search_files_in_folder, get_file_summary
+    search_files_in_folder, get_file_summary,
+    write_email, write_text_message, suggest_email_improvements, get_communication_templates
 )
 
 
@@ -43,7 +44,8 @@ def call_agent(state: AgentState):
     tools = [
         get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
         list_folder_contents, read_file_content, analyze_folder_structure, 
-        search_files_in_folder, get_file_summary
+        search_files_in_folder, get_file_summary,
+        write_email, write_text_message, suggest_email_improvements, get_communication_templates
     ]
     llm_with_tools = llm.bind_tools(tools)
     
@@ -112,7 +114,8 @@ def call_tools(state: AgentState):
     tools = [
         get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
         list_folder_contents, read_file_content, analyze_folder_structure, 
-        search_files_in_folder, get_file_summary
+        search_files_in_folder, get_file_summary,
+        write_email, write_text_message, suggest_email_improvements, get_communication_templates
     ]
     tool_node = ToolNode(tools)
     

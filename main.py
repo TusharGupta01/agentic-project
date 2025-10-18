@@ -80,9 +80,11 @@ async def chat_with_agent(request: ChatRequest):
 async def agent_info():
     """Get information about the AI agent capabilities."""
     return {
-        "agent_name": "File and Folder Analysis Agent",
-        "description": "Comprehensive AI agent for analyzing files, folders, and browsing history",
+        "agent_name": "Communication and File Analysis Agent",
+        "description": "Comprehensive AI agent for writing emails, analyzing files, and browsing history",
         "capabilities": [
+            "Email and text message writing",
+            "Communication templates and suggestions",
             "File and folder analysis",
             "File content reading and summarization",
             "Folder structure analysis",
@@ -96,6 +98,10 @@ async def agent_info():
             "General conversation"
         ],
         "tools": [
+            "write_email - Write professional emails with various templates and styles",
+            "write_text_message - Write text messages for different purposes and audiences",
+            "suggest_email_improvements - Analyze and suggest improvements for email drafts",
+            "get_communication_templates - Get available email and text message templates",
             "list_folder_contents - List all files and folders in a directory with detailed information",
             "read_file_content - Read and display the content of text files",
             "analyze_folder_structure - Get comprehensive statistics about a folder",
