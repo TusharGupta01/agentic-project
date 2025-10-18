@@ -80,9 +80,13 @@ async def chat_with_agent(request: ChatRequest):
 async def agent_info():
     """Get information about the AI agent capabilities."""
     return {
-        "agent_name": "Browsing History Analysis Agent",
-        "description": "Specialized AI agent for analyzing and understanding your browsing history",
+        "agent_name": "File and Folder Analysis Agent",
+        "description": "Comprehensive AI agent for analyzing files, folders, and browsing history",
         "capabilities": [
+            "File and folder analysis",
+            "File content reading and summarization",
+            "Folder structure analysis",
+            "Text search within files",
             "Chrome browser history analysis",
             "Browsing pattern insights",
             "Domain visit statistics",
@@ -92,6 +96,11 @@ async def agent_info():
             "General conversation"
         ],
         "tools": [
+            "list_folder_contents - List all files and folders in a directory with detailed information",
+            "read_file_content - Read and display the content of text files",
+            "analyze_folder_structure - Get comprehensive statistics about a folder",
+            "search_files_in_folder - Search for text within files in a folder",
+            "get_file_summary - Get detailed information about a specific file",
             "read_chrome_history - Read and analyze Google Chrome browser history with multiple analysis types",
             "analyze_browsing_patterns - Analyze browsing patterns and provide insights about web usage",
             "get_weather - Get weather information for cities",

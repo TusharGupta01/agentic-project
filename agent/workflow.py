@@ -12,7 +12,11 @@ from .state import AgentState
 from .llm import get_llm
 from .prompts import get_browsing_history_prompt, get_response_synthesis_prompt
 from .memory import conversation_memory
-from tools import get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns
+from tools import (
+    get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
+    list_folder_contents, read_file_content, analyze_folder_structure, 
+    search_files_in_folder, get_file_summary
+)
 
 
 def should_continue(state: AgentState) -> str:
@@ -36,7 +40,11 @@ def call_agent(state: AgentState):
     llm = get_llm()
     
     # Get the tools and bind them to the LLM
-    tools = [get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns]
+    tools = [
+        get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
+        list_folder_contents, read_file_content, analyze_folder_structure, 
+        search_files_in_folder, get_file_summary
+    ]
     llm_with_tools = llm.bind_tools(tools)
     
     # Get the user input from the last message
@@ -101,7 +109,11 @@ def call_agent(state: AgentState):
 def call_tools(state: AgentState):
     """Call the tools that the agent requested."""
     # Get the tools
-    tools = [get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns]
+    tools = [
+        get_weather, search_knowledge, read_chrome_history, analyze_browsing_patterns,
+        list_folder_contents, read_file_content, analyze_folder_structure, 
+        search_files_in_folder, get_file_summary
+    ]
     tool_node = ToolNode(tools)
     
     # Execute the tools
